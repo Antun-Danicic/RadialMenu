@@ -22,15 +22,12 @@ export class RadialMenu implements OnInit {
   ];
 
   wordPositionsBySegment: {
-    [segmentIndex: number]: { word: string; x: number; y: number; rotation: number }[];
+    [segmentIndex: number]: { word: string; arcRadius: number; startAngle: number }[];
   } = {};
 
   ngOnInit() {
-    const background = document.querySelector('.background')!;
-    const rect = background.getBoundingClientRect();
-
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
+    const cx = this.center.x;
+    const cy = this.center.y;
 
     for (let i = 0; i < this.words.length; i++) {
       this.wordPositionsBySegment[i] = this.generateWordPositions(i, cx, cy);
@@ -38,7 +35,7 @@ export class RadialMenu implements OnInit {
   }
 
   radius = 100;
-  center = { x: 250, y: 250 };
+  center = { x: 500, y: 500 };
   lastAngle: number = 0;
 
   mouse = { x: 0, y: 0 };
@@ -87,22 +84,25 @@ export class RadialMenu implements OnInit {
     `;
   }
 
-  getPathForSegmentTxt(i: number): string {
-    const angle = (2 * Math.PI) / this.words.length;
-    const start = i * angle;
-    const end = (i + 1) * angle;
+  /** Arc path for a single word, centred at its angle, on its ring radius. */
+  getWordArcPath(arcRadius: number, startAngle: number, segmentIndex: number): string {
+    const segAngle = (2 * Math.PI) / this.words.length;
+    const halfSpan = segAngle * 0.42;
+    const a0 = startAngle - halfSpan;
+    const a1 = startAngle + halfSpan;
 
-    const x1 = this.center.x + this.radius * Math.cos(start);
-    const y1 = this.center.y + this.radius * Math.sin(start);
-    const x2 = this.center.x + this.radius * Math.cos(end);
-    const y2 = this.center.y + this.radius * Math.sin(end);
+    const x1 = this.center.x + arcRadius * Math.cos(a0);
+    const y1 = this.center.y + arcRadius * Math.sin(a0);
+    const x2 = this.center.x + arcRadius * Math.cos(a1);
+    const y2 = this.center.y + arcRadius * Math.sin(a1);
 
-    console.log(x1, x2, y1, y2);
-
-    //return `M 330 260 A 100 100 0 0 1 300 336`;
-    return `
-    M ${x1} ${y1}
-    A ${this.radius} ${this.radius} 0 0 1 ${x2} ${y2} `;
+    // Rijeci ispod centra — zamijeniti start/end i promijeniti sweep u 0 (CCW)
+    // tako tekst teče po gornjoj strani luka i ostaje čitljiv
+    const isBelow = this.center.y + arcRadius * Math.sin(startAngle) > this.center.y;
+    if (isBelow) {
+      return `M ${x2} ${y2} A ${arcRadius} ${arcRadius} 0 0 0 ${x1} ${y1}`;
+    }
+    return `M ${x1} ${y1} A ${arcRadius} ${arcRadius} 0 0 1 ${x2} ${y2}`;
   }
 
   getClipPath(i: number): string {
@@ -113,7 +113,7 @@ export class RadialMenu implements OnInit {
     const start = i * angle;
     const end = (i + 1) * angle;
 
-    const r = rect.width;
+    const r = 1000;
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
 
@@ -172,12 +172,7 @@ export class RadialMenu implements OnInit {
 
     return words.map((word, idx) => {
       const angle = this.generateAngle(word, start, end);
-      const x = cx + rings[idx] * Math.cos(angle);
-      const y = cy + rings[idx] * Math.sin(angle);
-      // Tangent to the circle at this point: perpendicular to the radius vector
-      const rotation = (angle * 180) / Math.PI + 90;
-
-      return { word, x, y, rotation };
+      return { word, arcRadius: rings[idx], startAngle: angle };
     });
   }
 }
