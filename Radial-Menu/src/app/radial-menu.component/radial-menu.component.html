@@ -1,0 +1,61 @@
+<div class="container">
+  <div class="background">
+    <div class="segment-words">
+      <!-- @for (item of wordPositionsBySegment[0]; track $index) {
+        <span class="word" [style.left.px]="item.x" [style.top.px]="item.y">
+          {{ item.word }}
+        </span>
+      }
+      @for (item of wordPositionsBySegment[1]; track $index) {
+        <span class="word" [style.left.px]="item.x" [style.top.px]="item.y">
+          {{ item.word }}
+        </span>
+      }
+      @for (item of wordPositionsBySegment[2]; track $index) {
+        <span class="word" [style.left.px]="item.x" [style.top.px]="item.y">
+          {{ item.word }}
+        </span>
+      }
+      @for (item of wordPositionsBySegment[3]; track $index) {
+        <span class="word" [style.left.px]="item.x" [style.top.px]="item.y">
+          {{ item.word }}
+        </span>
+      }
+      @for (item of wordPositionsBySegment[4]; track $index) {
+        <span class="word" [style.left.px]="item.x" [style.top.px]="item.y">
+          {{ item.word }}
+        </span>
+      }
+      @for (item of wordPositionsBySegment[5]; track $index) {
+        <span class="word" [style.left.px]="item.x" [style.top.px]="item.y">
+          {{ item.word }}
+        </span>
+      } -->
+    </div>
+  </div>
+  @if (hoveredIndex != null) {
+    <div class="highlight" [style.clip-path]="getClipPath(hoveredIndex)">
+      @for (item of wordPositionsBySegment[hoveredIndex]; track $index) {
+        <span
+          class="word"
+          [style.left.px]="item.x"
+          [style.top.px]="item.y"
+          [style.transform]="'translate(-50%, -50%) rotate(' + item.rotation + 'deg)'"
+        >
+          {{ item.word }}
+        </span>
+      }
+    </div>
+  }
+
+  <svg class="radial-menu">
+    @for (segment of [].constructor(words.length); track $index) {
+      <path [attr.d]="getPathForSegment($index)" [class.hovered]="hoveredIndex === $index"></path>
+      <text text-anchor="middle" fill="white" font-family="Arial,Helvetica">
+        <path [attr.d]="getPathForSegmentTxt($index)" id="TextPath"></path>
+
+        <textPath xlink:href="#TextPath">Longertext</textPath>
+      </text>
+    }
+  </svg>
+</div>
