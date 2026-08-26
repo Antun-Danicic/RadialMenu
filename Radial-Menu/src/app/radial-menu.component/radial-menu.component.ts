@@ -1,178 +1,169 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, input, OnInit, viewChild } from '@angular/core';
+
+interface Segment {
+  label: string;
+  words: string[];
+}
+
+interface WordEntry {
+  word: string;
+  arcRadius: number;
+  startAngle: number;
+}
+
+interface SegmentPath {
+  d: string;
+  labelPath: { id: string; d: string };
+  slideDx: number;
+  slideDy: number;
+  wordPaths: { id: string; d: string }[];
+}
 
 @Component({
   selector: 'app-radial-menu',
   imports: [],
   templateUrl: './radial-menu.component.html',
   styleUrl: './radial-menu.component.scss',
+  host: {
+    '[style.width.px]': 'size()',
+    '[style.height.px]': 'size()',
+  },
 })
 export class RadialMenu implements OnInit {
-  words = [
-    ['Firewall', 'Encryption', 'Zero Trust', 'Authentication', 'Authorization'],
-    ['Load Balancing', 'Caching', 'CDN'],
-    ['Microservices', 'Containers'],
-    ['Monitoring', 'Logging', 'Tracing', 'Four', 'Five', 'Six/seven'],
-    ['CI/CD', 'Automation', 'Pipelines'],
-    ['Scalability', 'High Availability', 'Failover', 'High demand'],
-    /* 
-    ['Machine Learning', 'AI', 'Deep Learning'],
-    ['Blockchain', 'Smart Contracts', 'Decentralization'],
-    ['IoT', 'Edge Computing', 'Sensors'],
-    ['AR/VR', 'Mixed Reality', 'Holograms'], */
+  size = input<number>(600);
+
+  readonly segments: Segment[] = [
+    { label: 'Security',      words: ['Firewall', 'Encryption', 'Zero Trust', 'Authentication', 'Authorization'] },
+    { label: 'Performance',   words: ['Load Balancing', 'Caching', 'CDN'] },
+    { label: 'Architecture',  words: ['Microservices', 'Containers'] },
+    { label: 'Observability', words: ['Monitoring', 'Logging', 'Tracing', 'Four', 'Five', 'Six/seven'] },
+    { label: 'DevOps',        words: ['CI/CD', 'Automation', 'Pipelines'] },
+    { label: 'Reliability',   words: ['Scalability', 'High Availability', 'Failover', 'High demand'] },
   ];
 
-  wordPositionsBySegment: {
-    [segmentIndex: number]: { word: string; arcRadius: number; startAngle: number }[];
-  } = {};
+  readonly svgSize = 1000;
+  readonly cx = this.svgSize / 2;
+  readonly cy = this.svgSize / 2;
+  readonly innerRadius = this.svgSize * 0.1;
+  readonly labelFontSize = this.svgSize * 0.012;
+  readonly wordFontSize = this.svgSize * 0.014;
+  readonly firstRing = this.innerRadius + this.svgSize * 0.07;
+  readonly lastRing = this.innerRadius + this.svgSize * 0.4;
+  readonly slideDistance = this.svgSize * 0.06;
+  readonly segmentAngle = (2 * Math.PI) / this.segments.length;
 
-  ngOnInit() {
-    const cx = this.center.x;
-    const cy = this.center.y;
-
-    for (let i = 0; i < this.words.length; i++) {
-      this.wordPositionsBySegment[i] = this.generateWordPositions(i, cx, cy);
-    }
-  }
-
-  radius = 100;
-  center = { x: 500, y: 500 };
-  lastAngle: number = 0;
-
-  mouse = { x: 0, y: 0 };
+  segmentPaths: SegmentPath[] = [];
+  wordsBySegment: WordEntry[][] = [];
   hoveredIndex: number | null = null;
 
-  @HostListener('mousemove', ['$event'])
-  onMouseMove(e: MouseEvent) {
-    const svg = document.querySelector('svg')!;
-    const rect = svg.getBoundingClientRect();
+  private svgEl = viewChild.required<ElementRef<SVGSVGElement>>('svgEl');
 
-    this.mouse.x = e.clientX - rect.left;
-    this.mouse.y = e.clientY - rect.top;
-
-    this.hoveredIndex = this.getHoveredSegment();
+  ngOnInit(): void {
+    this.wordsBySegment = this.segments.map((_, i) => this.buildWordEntries(i));
+    this.segmentPaths = this.segments.map((_, i) => {
+      const midAngle = (i + 0.5) * this.segmentAngle;
+      return {
+        d: this.buildSegmentPath(i),
+        labelPath: { id: `label-arc-${i}`, d: this.buildLabelArcPath(i) },
+        slideDx: -Math.cos(midAngle) * this.slideDistance,
+        slideDy: -Math.sin(midAngle) * this.slideDistance,
+        wordPaths: this.wordsBySegment[i].map((entry, wordIdx) => ({
+          id: `word-arc-${i}-${wordIdx}`,
+          d: this.buildWordArcPath(entry.arcRadius, entry.startAngle),
+        })),
+      };
+    });
   }
 
-  getHoveredSegment(): number | null {
-    const dx = this.mouse.x - this.center.x;
-    const dy = this.mouse.y - this.center.y;
+  @HostListener('mousemove', ['$event'])
+  onMouseMove(e: MouseEvent): void {
+    const rect = this.svgEl().nativeElement.getBoundingClientRect();
+    const scaleX = this.svgSize / rect.width;
+    const scaleY = this.svgSize / rect.height;
+    const svgX = (e.clientX - rect.left) * scaleX;
+    const svgY = (e.clientY - rect.top) * scaleY;
+    this.hoveredIndex = this.resolveSegment(svgX, svgY);
+  }
 
+  svgToCssPx(svgUnits: number): number {
+    const rect = this.svgEl().nativeElement.getBoundingClientRect();
+    return svgUnits * (rect.width / this.svgSize);
+  }
+
+  private resolveSegment(svgX: number, svgY: number): number | null {
+    const dx = svgX - this.cx;
+    const dy = svgY - this.cy;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance > 500) return null;
-
+    if (distance > this.svgSize / 2) return null;
     const angle = Math.atan2(dy, dx);
     const normalized = angle < 0 ? angle + 2 * Math.PI : angle;
-
-    const segmentAngle = (2 * Math.PI) / this.words.length;
-    return Math.floor(normalized / segmentAngle);
+    return Math.floor(normalized / this.segmentAngle);
   }
 
-  getPathForSegment(i: number): string {
-    const angle = (2 * Math.PI) / this.words.length;
-    const start = i * angle;
-    const end = (i + 1) * angle;
-
-    const x1 = this.center.x + this.radius * Math.cos(start);
-    const y1 = this.center.y + this.radius * Math.sin(start);
-    const x2 = this.center.x + this.radius * Math.cos(end);
-    const y2 = this.center.y + this.radius * Math.sin(end);
-
-    return `
-      M ${this.center.x} ${this.center.y}
-      L ${x1} ${y1}
-      A ${this.radius} ${this.radius} 0 0 1 ${x2} ${y2}
-      Z
-    `;
+  private buildSegmentPath(i: number): string {
+    const start = i * this.segmentAngle;
+    const end = (i + 1) * this.segmentAngle;
+    const x1 = this.cx + this.innerRadius * Math.cos(start);
+    const y1 = this.cy + this.innerRadius * Math.sin(start);
+    const x2 = this.cx + this.innerRadius * Math.cos(end);
+    const y2 = this.cy + this.innerRadius * Math.sin(end);
+    return `M ${this.cx} ${this.cy} L ${x1} ${y1} A ${this.innerRadius} ${this.innerRadius} 0 0 1 ${x2} ${y2} Z`;
   }
 
-  /** Arc path for a single word, centred at its angle, on its ring radius. */
-  getWordArcPath(arcRadius: number, startAngle: number, segmentIndex: number): string {
-    const segAngle = (2 * Math.PI) / this.words.length;
-    const halfSpan = segAngle * 0.42;
+  private buildLabelArcPath(i: number): string {
+    const midAngle = (i + 0.5) * this.segmentAngle;
+    const isBelow = Math.sin(midAngle) > 0;
+    const baseR = this.innerRadius + 3;
+    const r = isBelow ? baseR + this.labelFontSize : baseR;
+    const a0 = midAngle - Math.PI / 2;
+    const a1 = midAngle + Math.PI / 2;
+    const x1 = this.cx + r * Math.cos(a0);
+    const y1 = this.cy + r * Math.sin(a0);
+    const x2 = this.cx + r * Math.cos(a1);
+    const y2 = this.cy + r * Math.sin(a1);
+    return isBelow
+      ? `M ${x2} ${y2} A ${r} ${r} 0 0 0 ${x1} ${y1}`
+      : `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;
+  }
+
+  private buildWordArcPath(arcRadius: number, startAngle: number): string {
+    const halfSpan = this.segmentAngle * 0.42;
     const a0 = startAngle - halfSpan;
     const a1 = startAngle + halfSpan;
-
-    const x1 = this.center.x + arcRadius * Math.cos(a0);
-    const y1 = this.center.y + arcRadius * Math.sin(a0);
-    const x2 = this.center.x + arcRadius * Math.cos(a1);
-    const y2 = this.center.y + arcRadius * Math.sin(a1);
-
-    // Rijeci ispod centra — zamijeniti start/end i promijeniti sweep u 0 (CCW)
-    // tako tekst teče po gornjoj strani luka i ostaje čitljiv
-    const isBelow = this.center.y + arcRadius * Math.sin(startAngle) > this.center.y;
-    if (isBelow) {
-      return `M ${x2} ${y2} A ${arcRadius} ${arcRadius} 0 0 0 ${x1} ${y1}`;
-    }
-    return `M ${x1} ${y1} A ${arcRadius} ${arcRadius} 0 0 1 ${x2} ${y2}`;
+    const isBelow = Math.sin(startAngle) > 0;
+    const r = isBelow ? arcRadius + this.wordFontSize : arcRadius;
+    const x1 = this.cx + r * Math.cos(a0);
+    const y1 = this.cy + r * Math.sin(a0);
+    const x2 = this.cx + r * Math.cos(a1);
+    const y2 = this.cy + r * Math.sin(a1);
+    const largeArc = halfSpan * 2 > Math.PI ? 1 : 0;
+    return isBelow
+      ? `M ${x2} ${y2} A ${r} ${r} 0 ${largeArc} 0 ${x1} ${y1}`
+      : `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
   }
 
-  getClipPath(i: number): string {
-    const background = document.querySelector('.background')!;
-    const rect = background.getBoundingClientRect();
-
-    const angle = (2 * Math.PI) / this.words.length;
-    const start = i * angle;
-    const end = (i + 1) * angle;
-
-    const r = 1000;
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-
-    const x1 = cx + r * Math.cos(start);
-    const y1 = cy + r * Math.sin(start);
-    const x2 = cx + r * Math.cos(end);
-    const y2 = cy + r * Math.sin(end);
-
-    return `polygon(
-    ${cx}px ${cy}px,
-    ${x1}px ${y1}px,
-    ${x2}px ${y2}px
-  )`;
-  }
-
-  generateAngle(word: string, start: number, end: number): number {
-    const boundaryPaddingStart = start + 0.27;
-    const boundaryPaddingEnd = end - 0.2;
-    const minAngleDistance = 0.2;
-
-    let angle: number = 0;
-    let tries = 0;
-
-    while (true) {
-      if (tries > 50) {
-        break;
-      }
-      tries++;
-
-      angle = Math.random() * (boundaryPaddingEnd - boundaryPaddingStart) + boundaryPaddingStart;
-
-      if (Math.abs(this.lastAngle - angle) < minAngleDistance) continue;
-
-      this.lastAngle = angle;
-      break;
-    }
-    return angle;
-  }
-
-  generateWordPositions(segmentIndex: number, cx: number, cy: number) {
-    const firstRing = this.radius + 70;
-    const lastRing = this.radius + 350;
-    const angle = (2 * Math.PI) / this.words.length;
-    const start = segmentIndex * angle;
-    const end = (segmentIndex + 1) * angle;
-
-    const words = this.words[segmentIndex];
-
-    const rings = words.map((word, id) => {
-      const ringsScope = lastRing - firstRing;
-      const ringsNum = words.length;
-      const currentRingValue = firstRing + (ringsScope / ringsNum) * id + 1;
-      console.log('zone value for word: ', word, ' is: ', currentRingValue);
-      return currentRingValue;
+  private buildWordEntries(segmentIndex: number): WordEntry[] {
+    const segWords = this.segments[segmentIndex].words;
+    const start = segmentIndex * this.segmentAngle;
+    const end = (segmentIndex + 1) * this.segmentAngle;
+    const ringStep = (this.lastRing - this.firstRing) / segWords.length;
+    let lastAngle = 0;
+    return segWords.map((word, idx) => {
+      const arcRadius = this.firstRing + ringStep * idx;
+      const startAngle = this.pickAngle(start, end, lastAngle);
+      lastAngle = startAngle;
+      return { word, arcRadius, startAngle };
     });
+  }
 
-    return words.map((word, idx) => {
-      const angle = this.generateAngle(word, start, end);
-      return { word, arcRadius: rings[idx], startAngle: angle };
-    });
+  private pickAngle(start: number, end: number, lastAngle: number): number {
+    const paddedStart = start + 0.1;
+    const paddedEnd = end - 0.1;
+    const minDistance = 0.2;
+    for (let i = 0; i < 500; i++) {
+      const angle = Math.random() * (paddedEnd - paddedStart) + paddedStart;
+      if (Math.abs(lastAngle - angle) >= minDistance) return angle;
+    }
+    return (paddedStart + paddedEnd) / 2;
   }
 }

@@ -1,46 +1,47 @@
-<div class="container">
-  <!-- <div class="background"></div> -->
-  <svg class="radial-menu" viewBox="0 0 1000 1000">
-    <defs>
-      @for (segment of [].constructor(words.length); track $index) {
-        @let segIdx = $index;
-        @for (item of wordPositionsBySegment[segIdx]; track $index) {
-          @let wordIdx = $index;
-          <path
-            [id]="'word-arc-' + segIdx + '-' + wordIdx"
-            [attr.d]="getWordArcPath(item.arcRadius, item.startAngle, segIdx)"
-          />
-        }
+<svg #svgEl class="radial-menu" [attr.viewBox]="'0 0 ' + svgSize + ' ' + svgSize">
+  <defs>
+    @for (seg of segmentPaths; track $index) {
+      @for (wp of seg.wordPaths; track wp.id) {
+        <path [id]="wp.id" [attr.d]="wp.d" />
       }
-    </defs>
-
-    @for (segment of [].constructor(words.length); track $index) {
-      <path [attr.d]="getPathForSegment($index)" [class.hovered]="hoveredIndex === $index"></path>
+      <path [id]="seg.labelPath.id" [attr.d]="seg.labelPath.d" />
     }
+  </defs>
 
-    @for (segment of [].constructor(words.length); track $index) {
-      @let segIdx = $index;
-      @for (item of wordPositionsBySegment[segIdx]; track $index) {
-        @let wordIdx = $index;
-        <text
-          text-anchor="middle"
-          dominant-baseline="middle"
-          fill="white"
-          font-family="Inter, Arial, sans-serif"
-          font-size="13"
-          font-weight="600"
-          [class.word-visible]="hoveredIndex === segIdx"
-          class="curved-word"
-        >
-          <textPath
-            [attr.href]="'#word-arc-' + segIdx + '-' + wordIdx"
-            startOffset="50%"
-            text-anchor="middle"
-          >
-            {{ item.word }}
-          </textPath>
-        </text>
-      }
+  @for (seg of segmentPaths; track $index) {
+    <path [attr.d]="seg.d" [class.hovered]="hoveredIndex === $index" />
+  }
+
+  @for (seg of segmentPaths; track $index) {
+    @let segIdx = $index;
+    @let isHovered = hoveredIndex === segIdx;
+    <text
+      class="segment-label"
+      [class.label-visible]="isHovered"
+      [attr.font-size]="labelFontSize"
+      [style.transform]="isHovered
+        ? 'translate(0px, 0px)'
+        : 'translate(' + svgToCssPx(seg.slideDx) + 'px, ' + svgToCssPx(seg.slideDy) + 'px)'"
+    >
+      <textPath [attr.href]="'#' + seg.labelPath.id" startOffset="50%" text-anchor="middle">
+        {{ segments[segIdx].label }}
+      </textPath>
+    </text>
+  }
+
+  @for (seg of segmentPaths; track $index) {
+    @let segIdx = $index;
+    @for (entry of wordsBySegment[segIdx]; track entry.word) {
+      @let wp = seg.wordPaths[$index];
+      <text
+        class="curved-word"
+        [class.word-visible]="hoveredIndex === segIdx"
+        [attr.font-size]="wordFontSize"
+      >
+        <textPath [attr.href]="'#' + wp.id" startOffset="50%" text-anchor="middle">
+          {{ entry.word }}
+        </textPath>
+      </text>
     }
-  </svg>
-</div>
+  }
+</svg>
