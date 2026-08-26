@@ -33,12 +33,21 @@ export class RadialMenu implements OnInit {
   size = input<number>(600);
 
   readonly segments: Segment[] = [
-    { label: 'Security',      words: ['Firewall', 'Encryption', 'Zero Trust', 'Authentication', 'Authorization'] },
-    { label: 'Performance',   words: ['Load Balancing', 'Caching', 'CDN'] },
-    { label: 'Architecture',  words: ['Microservices', 'Containers'] },
-    { label: 'Observability', words: ['Monitoring', 'Logging', 'Tracing', 'Four', 'Five', 'Six/seven'] },
-    { label: 'DevOps',        words: ['CI/CD', 'Automation', 'Pipelines'] },
-    { label: 'Reliability',   words: ['Scalability', 'High Availability', 'Failover', 'High demand'] },
+    {
+      label: 'Security',
+      words: ['Firewall', 'Encryption', 'Zero Trust', 'Authentication', 'Authorization'],
+    },
+    { label: 'Performance', words: ['Load Balancing', 'Caching', 'CDN'] },
+    { label: 'Architecture', words: ['Microservices', 'Containers'] },
+    {
+      label: 'Observability',
+      words: ['Monitoring', 'Logging', 'Tracing', 'Four', 'Five', 'Six/seven'],
+    },
+    { label: 'DevOps', words: ['CI/CD', 'Automation', 'Pipelines'] },
+    {
+      label: 'Reliability',
+      words: ['Scalability', 'High Availability', 'Failover', 'High demand'],
+    },
   ];
 
   readonly svgSize = 1000;
@@ -48,8 +57,8 @@ export class RadialMenu implements OnInit {
   readonly labelFontSize = this.svgSize * 0.012;
   readonly wordFontSize = this.svgSize * 0.014;
   readonly firstRing = this.innerRadius + this.svgSize * 0.07;
-  readonly lastRing = this.innerRadius + this.svgSize * 0.4;
-  readonly slideDistance = this.svgSize * 0.06;
+  readonly lastRing = this.innerRadius + this.svgSize * 0.43;
+  readonly slideDistance = this.svgSize * 0.04;
   readonly segmentAngle = (2 * Math.PI) / this.segments.length;
 
   segmentPaths: SegmentPath[] = [];
