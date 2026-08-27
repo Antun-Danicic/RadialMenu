@@ -1,7 +1,8 @@
 :host {
   display: block;
   border-radius: 50%;
-  background-color: black;
+  background-color: rgb(255, 255, 255);
+  border: 2px solid black;
   overflow: hidden;
 }
 
@@ -11,40 +12,47 @@
 }
 
 path {
-  fill: #333;
-  stroke: #444;
-  transition: fill 0.2s;
+  fill: #511057;
+  stroke: #ffffff;
+  transition: fill 0.7s;
 }
 
 path.hovered {
-  fill: #a72525;
+  fill: #e12ae7;
+  background-color: black;
 }
 
 .curved-word {
   pointer-events: none;
   font-family: Inter, Arial, sans-serif;
   font-weight: 600;
-  fill: white;
+  fill: rgb(0, 0, 0);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.5s ease;
 }
 
 .curved-word.word-visible {
   opacity: 1;
-  animation: floating 4s ease-in-out infinite;
+  animation: floating 3s ease-in-out infinite;
 }
 
 @keyframes floating {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.01); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.01);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .segment-label {
   pointer-events: none;
   font-family: Inter, Arial, sans-serif;
   font-weight: 700;
-  fill: white;
+  fill: rgb(0, 0, 0);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0;

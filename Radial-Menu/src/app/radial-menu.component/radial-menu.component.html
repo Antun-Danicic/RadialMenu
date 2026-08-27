@@ -13,18 +13,19 @@
   }
 
   @for (seg of segmentPaths; track $index) {
-    @let segIdx = $index;
-    @let isHovered = hoveredIndex === segIdx;
+    @let isHovered = hoveredIndex === $index;
     <text
       class="segment-label"
       [class.label-visible]="isHovered"
       [attr.font-size]="labelFontSize"
-      [style.transform]="isHovered
-        ? 'translate(0px, 0px)'
-        : 'translate(' + svgToCssPx(seg.slideDx) + 'px, ' + svgToCssPx(seg.slideDy) + 'px)'"
+      [style.transform]="
+        isHovered
+          ? 'translate(0px, 0px)'
+          : 'translate(' + svgToCssPx(seg.slideDx) + 'px, ' + svgToCssPx(seg.slideDy) + 'px)'
+      "
     >
       <textPath [attr.href]="'#' + seg.labelPath.id" startOffset="50%" text-anchor="middle">
-        {{ segments[segIdx].label }}
+        {{ segments[$index].label }}
       </textPath>
     </text>
   }
