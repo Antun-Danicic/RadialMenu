@@ -1,8 +1,18 @@
 import { Component, ElementRef, HostListener, input, OnInit, viewChild } from '@angular/core';
 
+interface SegmentColors {
+  label: string;
+  text: string;
+  segmentIdle: string;
+  segmentHover: string;
+  innerIdle: string;
+  innerHover: string;
+}
+
 interface Segment {
   label: string;
   words: string[];
+  colors: SegmentColors;
 }
 
 interface WordEntry {
@@ -12,7 +22,8 @@ interface WordEntry {
 }
 
 interface SegmentPath {
-  d: string;
+  innerD: string;
+  outerD: string;
   labelPath: { id: string; d: string };
   slideDx: number;
   slideDy: number;
@@ -36,17 +47,74 @@ export class RadialMenu implements OnInit {
     {
       label: 'Security',
       words: ['Firewall', 'Encryption', 'Zero Trust', 'Authentication', 'Authorization'],
+      colors: {
+        label: '#67a9ff',
+        text: '#ffffff',
+        segmentIdle: '#0d2b45',
+        segmentHover: '#005096',
+        innerIdle: '#005096',
+        innerHover: '#2d8bdd',
+      },
     },
-    { label: 'Performance', words: ['Load Balancing', 'Caching', 'CDN'] },
-    { label: 'Architecture', words: ['Microservices', 'Containers'] },
+    {
+      label: 'Performance',
+      words: ['Load Balancing', 'Caching', 'CDN'],
+      colors: {
+        label: '#e4c200',
+        text: '#ffffff',
+        segmentIdle: '#453700',
+        segmentHover: '#927200',
+        innerIdle: '#927200',
+        innerHover: '#cea501',
+      },
+    },
+    {
+      label: 'Architecture',
+      words: ['Microservices', 'Containers'],
+      colors: {
+        label: '#00e439',
+        text: '#ffffff',
+        segmentIdle: '#115023',
+        segmentHover: '#24813e',
+        innerIdle: '#24813e',
+        innerHover: '#24b351',
+      },
+    },
     {
       label: 'Observability',
-      words: ['Monitoring', 'Logging', 'Tracing', 'Four', 'Five', 'Six/seven'],
+      words: ['Monitoring', 'Logging', 'Tracing', 'Four', 'Five', 'Six'],
+      colors: {
+        label: '#ff4492',
+        text: '#ffffff',
+        segmentIdle: '#5c0028',
+        segmentHover: '#8d023c',
+        innerIdle: '#8d023c',
+        innerHover: '#d62276',
+      },
     },
-    { label: 'DevOps', words: ['CI/CD', 'Automation', 'Pipelines'] },
+    {
+      label: 'DevOps',
+      words: ['CI/CD', 'Automation', 'Pipelines'],
+      colors: {
+        label: '#d365ff',
+        text: '#ffffff',
+        segmentIdle: '#2a0045',
+        segmentHover: '#4c008a',
+        innerIdle: '#4c008a',
+        innerHover: '#7901d4',
+      },
+    },
     {
       label: 'Reliability',
       words: ['Scalability', 'High Availability', 'Failover', 'High demand'],
+      colors: {
+        label: '#fa633a',
+        text: '#ffffff',
+        segmentIdle: '#5f1000',
+        segmentHover: '#971400',
+        innerIdle: '#971400',
+        innerHover: '#dd3000',
+      },
     },
   ];
 
@@ -72,7 +140,8 @@ export class RadialMenu implements OnInit {
     this.segmentPaths = this.segments.map((_, i) => {
       const midAngle = (i + 0.5) * this.segmentAngle;
       return {
-        d: this.buildSegmentPath(i),
+        innerD: this.buildInnerSegmentPath(i),
+        outerD: this.buildOuterSegmentPath(i),
         labelPath: { id: `label-arc-${i}`, d: this.buildLabelArcPath(i) },
         slideDx: -Math.cos(midAngle) * this.slideDistance,
         slideDy: -Math.sin(midAngle) * this.slideDistance,
@@ -109,7 +178,7 @@ export class RadialMenu implements OnInit {
     return Math.floor(normalized / this.segmentAngle);
   }
 
-  private buildSegmentPath(i: number): string {
+  private buildInnerSegmentPath(i: number): string {
     const start = i * this.segmentAngle;
     const end = (i + 1) * this.segmentAngle;
     const x1 = this.cx + this.innerRadius * Math.cos(start);
@@ -117,6 +186,31 @@ export class RadialMenu implements OnInit {
     const x2 = this.cx + this.innerRadius * Math.cos(end);
     const y2 = this.cy + this.innerRadius * Math.sin(end);
     return `M ${this.cx} ${this.cy} L ${x1} ${y1} A ${this.innerRadius} ${this.innerRadius} 0 0 1 ${x2} ${y2} Z`;
+  }
+
+  private buildOuterSegmentPath(i: number): string {
+    const start = i * this.segmentAngle;
+    const end = (i + 1) * this.segmentAngle;
+    const outerR = this.svgSize / 2;
+    const largeArc = this.segmentAngle > Math.PI ? 1 : 0;
+
+    const ix1 = this.cx + this.innerRadius * Math.cos(start);
+    const iy1 = this.cy + this.innerRadius * Math.sin(start);
+    const ix2 = this.cx + this.innerRadius * Math.cos(end);
+    const iy2 = this.cy + this.innerRadius * Math.sin(end);
+
+    const ox1 = this.cx + outerR * Math.cos(start);
+    const oy1 = this.cy + outerR * Math.sin(start);
+    const ox2 = this.cx + outerR * Math.cos(end);
+    const oy2 = this.cy + outerR * Math.sin(end);
+
+    return [
+      `M ${ix1} ${iy1}`,
+      `A ${this.innerRadius} ${this.innerRadius} 0 ${largeArc} 1 ${ix2} ${iy2}`,
+      `L ${ox2} ${oy2}`,
+      `A ${outerR} ${outerR} 0 ${largeArc} 0 ${ox1} ${oy1}`,
+      `Z`,
+    ].join(' ');
   }
 
   private buildLabelArcPath(i: number): string {
@@ -166,8 +260,8 @@ export class RadialMenu implements OnInit {
   }
 
   private pickAngle(start: number, end: number, lastAngle: number): number {
-    const paddedStart = start + 0.1;
-    const paddedEnd = end - 0.1;
+    const paddedStart = start + 0.3;
+    const paddedEnd = end - 0.3;
     const minDistance = 0.2;
     for (let i = 0; i < 500; i++) {
       const angle = Math.random() * (paddedEnd - paddedStart) + paddedStart;

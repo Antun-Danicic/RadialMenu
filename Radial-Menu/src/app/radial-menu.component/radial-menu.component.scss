@@ -2,7 +2,6 @@
   display: block;
   border-radius: 50%;
   background-color: rgb(255, 255, 255);
-  border: 2px solid black;
   overflow: hidden;
 }
 
@@ -12,14 +11,12 @@
 }
 
 path {
-  fill: #511057;
-  stroke: #ffffff;
-  transition: fill 0.7s;
+  fill: none;
+  stroke: pink;
 }
 
-path.hovered {
-  fill: #e12ae7;
-  background-color: black;
+.inner-circle {
+  transition: fill 0.3s ease;
 }
 
 .curved-word {
@@ -32,6 +29,7 @@ path.hovered {
 }
 
 .curved-word.word-visible {
+  transform-origin: 50% 50%;
   opacity: 1;
   animation: floating 3s ease-in-out infinite;
 }

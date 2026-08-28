@@ -9,15 +9,32 @@
   </defs>
 
   @for (seg of segmentPaths; track $index) {
-    <path [attr.d]="seg.d" [class.hovered]="hoveredIndex === $index" />
+    @let segIdx = $index;
+    @let isHovered = hoveredIndex === segIdx;
+    @let colors = segments[segIdx].colors;
+
+    <path
+      [attr.d]="seg.outerD"
+      [style.fill]="isHovered ? colors.segmentHover : colors.segmentIdle"
+      style="transition: fill 0.3s ease"
+    />
+    <path
+      [attr.d]="seg.innerD"
+      [style.fill]="isHovered ? colors.innerHover : colors.innerIdle"
+      style="transition: fill 0.3s ease"
+    />
   }
 
   @for (seg of segmentPaths; track $index) {
-    @let isHovered = hoveredIndex === $index;
+    @let segIdx = $index;
+    @let isHovered = hoveredIndex === segIdx;
+    @let colors = segments[segIdx].colors;
+
     <text
       class="segment-label"
       [class.label-visible]="isHovered"
       [attr.font-size]="labelFontSize"
+      [style.fill]="colors.label"
       [style.transform]="
         isHovered
           ? 'translate(0px, 0px)'
@@ -25,19 +42,23 @@
       "
     >
       <textPath [attr.href]="'#' + seg.labelPath.id" startOffset="50%" text-anchor="middle">
-        {{ segments[$index].label }}
+        {{ segments[segIdx].label }}
       </textPath>
     </text>
   }
 
   @for (seg of segmentPaths; track $index) {
     @let segIdx = $index;
+    @let isHovered = hoveredIndex === segIdx;
+    @let colors = segments[segIdx].colors;
+
     @for (entry of wordsBySegment[segIdx]; track entry.word) {
       @let wp = seg.wordPaths[$index];
       <text
         class="curved-word"
-        [class.word-visible]="hoveredIndex === segIdx"
+        [class.word-visible]="isHovered"
         [attr.font-size]="wordFontSize"
+        [style.fill]="colors.text"
       >
         <textPath [attr.href]="'#' + wp.id" startOffset="50%" text-anchor="middle">
           {{ entry.word }}
